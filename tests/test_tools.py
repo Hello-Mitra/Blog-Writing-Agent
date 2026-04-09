@@ -6,7 +6,6 @@ No LLM calls or external API calls are made.
 """
 
 from unittest.mock import patch, MagicMock
-from src.tools.slug import safe_slug
 
 
 class TestTavilySearch:
