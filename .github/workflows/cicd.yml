@@ -1,0 +1,120 @@
+name: CI/CD — Blog Writing Agent
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+
+  # ─────────────────────────────────────────────
+  # JOB 1 — Lint, Test & Push to ECR
+  # ─────────────────────────────────────────────
+  Continuous-Integration:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install linting tools
+        run: pip install ruff
+
+      - name: Run Ruff
+        run: ruff check . --ignore E501
+
+      - name: Install test dependencies
+        run: pip install -r requirements.backend.txt
+
+      - name: Run tests
+        run: pytest tests/ -v
+        env:
+          OPENAI_API_KEY: dummy-key-for-testing
+          TAVILY_API_KEY: ""
+          GOOGLE_API_KEY: ""
+          LANGCHAIN_TRACING_V2: "false"
+          LANGCHAIN_API_KEY: ""
+          LANGCHAIN_PROJECT: test
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build Backend Docker Image
+        run: docker build -f Dockerfile.backend -t backend .
+
+      - name: Tag Backend Image
+        run: |
+          docker tag backend:latest \
+          ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_BACKEND_REPO }}:latest
+
+      - name: Push Backend Image
+        run: |
+          docker push \
+          ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_BACKEND_REPO }}:latest
+
+      - name: Build Frontend Docker Image
+        run: docker build -f Dockerfile.frontend -t frontend .
+
+      - name: Tag Frontend Image
+        run: |
+          docker tag frontend:latest \
+          ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_FRONTEND_REPO }}:latest
+
+      - name: Push Frontend Image
+        run: |
+          docker push \
+          ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_FRONTEND_REPO }}:latest
+
+
+  # ─────────────────────────────────────────────
+  # JOB 2 — Deploy to EC2
+  # ─────────────────────────────────────────────
+  Continuous-Deployment:
+    needs: Continuous-Integration
+    runs-on: self-hosted
+
+    steps:
+
+      - name: Fix workspace permissions
+        run: sudo chown -R ubuntu:ubuntu ${{ github.workspace }} || true
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Clean up old Docker images
+        run: docker system prune -af
+
+      - name: Pull latest Docker images
+        run: |
+          docker pull ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_BACKEND_REPO }}:latest
+          docker pull ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_FRONTEND_REPO }}:latest
+
+      - name: Stop existing containers
+        run: docker-compose --env-file /home/ubuntu/.env down || true
+
+      - name: Start application containers
+        run: docker-compose --env-file /home/ubuntu/.env up -d
