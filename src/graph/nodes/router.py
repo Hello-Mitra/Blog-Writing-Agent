@@ -7,7 +7,6 @@ from src.logger import logging
 from src.exception import MyException
 from src.schemas.models import State, RouterDecision
 from src.prompts.templates import ROUTER_SYSTEM
-from entity.config_entity import LLMConfig
 
 
 def build_router_node(llm: ChatOpenAI):

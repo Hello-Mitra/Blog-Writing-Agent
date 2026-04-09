@@ -7,7 +7,7 @@ import zipfile
 from datetime import date
 from io import BytesIO
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import List, Tuple
 
 import pandas as pd
 import requests as http_requests

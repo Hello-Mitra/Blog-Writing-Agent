@@ -4,7 +4,7 @@ Unit tests for utility tools.
 Tests safe_slug and tavily_search in isolation.
 No LLM calls or external API calls are made.
 """
-import pytest
+
 from unittest.mock import patch, MagicMock
 from src.tools.slug import safe_slug
 

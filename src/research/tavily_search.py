@@ -3,7 +3,6 @@ from __future__ import annotations
 import sys
 from typing import List
 from src.logger import logging
-from src.exception import MyException
 from config.settings import settings
 
 

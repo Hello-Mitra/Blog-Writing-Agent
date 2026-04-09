@@ -5,10 +5,6 @@ Uses FastAPI TestClient with a mocked LangGraph app so no real
 LLM calls are made during testing. The mock_app_client fixture
 is defined in conftest.py and injected automatically by pytest.
 """
-import pytest
-from unittest.mock import patch, MagicMock
-from pathlib import Path
-
 
 class TestHealthEndpoint:
     """Tests for GET /health"""

@@ -7,7 +7,7 @@ from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_openai import ChatOpenAI
 from src.logger import logging
 from src.exception import MyException
-from src.schemas.models import State, EvidenceItem, EvidencePack
+from src.schemas.models import State, EvidencePack
 from src.prompts.templates import RESEARCH_SYSTEM
 from src.research.tavily_search import tavily_search
 from entity.config_entity import ResearchConfig
