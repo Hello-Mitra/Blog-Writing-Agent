@@ -8,10 +8,9 @@ without needing to import them.
 """
 import os
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from fastapi.testclient import TestClient
 
-# Set dummy env vars BEFORE anything imports settings
 os.environ.setdefault("OPENAI_API_KEY", "dummy-key-for-testing")
 os.environ.setdefault("TAVILY_API_KEY", "")
 os.environ.setdefault("GOOGLE_API_KEY", "")
@@ -23,29 +22,39 @@ os.environ.setdefault("LANGCHAIN_PROJECT", "test")
 @pytest.fixture
 def mock_app_client():
     """
-    Creates a FastAPI TestClient with mocked app.state.blog_app.
+    Creates a FastAPI TestClient with the LangGraph pipeline mocked.
 
-    The LangGraph app is mocked so API tests never make real LLM
-    calls or generate real blog content.
-
-    Yields a TestClient ready for use in test methods.
+    Patches BlogPipeline.build() so the lifespan never builds a real
+    LangGraph graph or initializes a real ChatOpenAI instance.
+    The mock blog_app.invoke returns a fake completed blog output.
     """
-    from backend.main import app
-
+    # ✅ Mock the entire pipeline build — prevents real ChatOpenAI init
     mock_blog_app = MagicMock()
     mock_blog_app.invoke.return_value = {
         "plan": MagicMock(
             blog_title="Test Blog Post",
             blog_kind="explainer",
             tasks=[],
+            model_dump=lambda: {
+                "blog_title": "Test Blog Post",
+                "blog_kind": "explainer",
+                "audience": "developers",
+                "tone": "practical",
+                "tasks": [],
+                "constraints": [],
+            }
         ),
         "final": "# Test Blog Post\n\nThis is test content.",
         "image_specs": [],
         "evidence": [],
         "mode": "closed_book",
+        "sections": [],
+        "merged_md": "",
+        "md_with_placeholders": "",
     }
 
-    app.state.blog_app = mock_blog_app
-
-    with TestClient(app) as client:
-        yield client
+    # ✅ Patch BlogPipeline.build before the app starts
+    with patch("pipeline.blog_pipeline.BlogPipeline.build", return_value=mock_blog_app):
+        from backend.main import app
+        with TestClient(app) as client:
+            yield client
