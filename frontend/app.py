@@ -13,9 +13,9 @@ import pandas as pd
 import requests as http_requests
 import streamlit as st
 
-BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8001")
+BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
 
-st.set_page_config(page_title="Blog Writing Agent", layout="wide")
+st.set_page_config(page_title="DeepDraft — Research-backed content generation", layout="wide")
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
