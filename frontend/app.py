@@ -126,6 +126,8 @@ def render_markdown_with_local_images(md: str):
             candidates = [
                 Path(src),
                 Path(src.lstrip("./")),
+                Path("/app") / src,                  
+                Path("/app") / src.lstrip("./"), 
                 Path.cwd() / src,
                 Path.cwd() / src.lstrip("./"),
             ]
