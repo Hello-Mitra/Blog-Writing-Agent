@@ -13,4 +13,6 @@ langgraph
 
 openai
 tavily-python
-google-genai
+
+pytest
+httpx
